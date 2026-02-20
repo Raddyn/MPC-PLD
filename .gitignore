@@ -1,0 +1,7 @@
+*.cache
+*.hw
+*.ioplanning
+*.ip_*
+*.runs
+*.sim
+*.srcs
