@@ -1,0 +1,27 @@
+#-----------------------------------------------------------
+# Vivado v2025.2 (64-bit)
+# SW Build 6299465 on Fri Nov 14 19:35:11 GMT 2025
+# IP Build 6300035 on Fri Nov 14 10:48:45 MST 2025
+# SharedData Build 6298862 on Thu Nov 13 04:50:51 MST 2025
+# Start of session at: Fri Mar 13 09:01:44 2026
+# Process ID         : 2428
+# Current directory  : C:/Users/246958/PLD/LAB_4
+# Command line       : vivado.exe -gui_launcher_event rodinguilauncherevent4784 C:\Users\246958\PLD\LAB_4\Stopwatch.xpr
+# Log file           : C:/Users/246958/PLD/LAB_4/vivado.log
+# Journal file       : C:/Users/246958/PLD/LAB_4\vivado.jou
+# Running On         : PC-SC660-38
+# Platform           : Windows Server 2016 or Windows 10
+# Operating System   : 26200
+# Processor Detail   : Intel(R) Core(TM) i5-14600K
+# CPU Frequency      : 3494 MHz
+# CPU Physical cores : 14
+# CPU Logical cores  : 20
+# Host memory        : 34088 MB
+# Swap memory        : 5100 MB
+# Total Virtual      : 39188 MB
+# Available Virtual  : 32209 MB
+#-----------------------------------------------------------
+start_gui
+open_project C:/Users/246958/PLD/LAB_4/Stopwatch.xpr
+upgrade_project -migrate_output_products
+update_compile_order -fileset sources_1
