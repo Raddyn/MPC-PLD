@@ -4,5 +4,5 @@
 *.ip_*
 *.runs
 *.sim
-*.srcs
-*.xpr
+
+
