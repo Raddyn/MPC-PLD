@@ -35,7 +35,7 @@ architecture tb of FIR_50k_TB is
 begin
 ----------------------------------------------------------------------------------
   --------------------------------------------------------------------------------
-  -- Clock process
+  -- Clock process definitions
   --------------------------------------------------------------------------------
   P_aclk: PROCESS
   BEGIN
@@ -43,7 +43,6 @@ begin
     aclk <= '1'; WAIT FOR C_aclk_period/2;
     IF sig_SIM_finished THEN WAIT; END IF;
   END PROCESS P_aclk;
-
   -----------------------------------------------------------------------
   -- Instantiate the DUT
   -----------------------------------------------------------------------
@@ -59,44 +58,29 @@ begin
     m_axis_data_tvalid  => m_axis_data_tvalid,
     m_axis_data_tdata   => m_axis_data_tdata
   );
-
   -----------------------------------------------------------------------
   -- FIR input
   --    read FIR_data_in.txt
   --    feed the FIR filter with the data from file
   -----------------------------------------------------------------------
-  P_input: PROCESS
-    FILE     file_in  : TEXT;
+  read_txt: PROCESS
+    FILE     File_ID  : TEXT;
     VARIABLE line_in  : LINE;
     VARIABLE v_number : INTEGER;
   BEGIN
-    FILE_OPEN(file_in, "..\..\..\..\SOURCES\FIR_data\FIR_data_in.txt", READ_MODE);
-
+    FILE_OPEN(File_ID, "..\..\..\..\SOURCES\FIR_data\FIR_data_in.txt", READ_MODE);
     WAIT UNTIL falling_edge(aclk);
-
-    WHILE NOT ENDFILE(file_in) LOOP
-      READLINE(file_in, line_in);
+    WHILE NOT ENDFILE(File_ID) LOOP
+      READLINE(File_ID, line_in);
       READ(line_in, v_number);
-
       s_axis_data_tdata  <= STD_LOGIC_VECTOR(RESIZE(TO_SIGNED(v_number, 9), 16));
-      s_axis_data_tvalid <= '1';
-
-      WAIT UNTIL rising_edge(aclk) AND s_axis_data_tready = '1';
-
-      s_axis_data_tvalid <= '0';
-
-      WAIT FOR C_aclk_period * 7;
-
+      s_axis_data_tvalid <= '1'; WAIT FOR C_aclk_period * 1;
+      s_axis_data_tvalid <= '0'; WAIT FOR C_aclk_period * 3;
     END LOOP;
-
-    FILE_CLOSE(file_in);
-
-    WAIT FOR C_aclk_period * 500;
-
+    FILE_CLOSE(File_ID);
     sig_SIM_finished <= TRUE;
     WAIT;
-  END PROCESS P_input;
-
+  END PROCESS read_txt;
   -----------------------------------------------------------------------
   -- FIR output data check
   --    read reference data from FIR_data_out.txt
@@ -104,74 +88,54 @@ begin
   --    report any discrepancy (both a text LOG file and simulator console)
   --    report overall test result
   -----------------------------------------------------------------------
-  P_output: PROCESS
-    FILE     file_out : TEXT;
-    FILE     file_log : TEXT;
+  write_txt_v3: PROCESS
+    FILE     File_ID   : TEXT;
+    FILE     File_LOG  : TEXT;
     VARIABLE line_out  : LINE;
-    VARIABLE line_log  : LINE;
+    VARIABLE text_line : LINE;
     VARIABLE v_expected : INTEGER;
     VARIABLE v_actual   : INTEGER;
     VARIABLE err_count  : INTEGER := 0;
   BEGIN
-    FILE_OPEN(file_out, "..\..\..\..\SOURCES\FIR_data\FIR_data_out.txt", READ_MODE);
-    FILE_OPEN(file_log, "FIR_sim_LOG.txt", WRITE_MODE);
-
-    WRITE(line_log, STRING'("FIR Filter Simulation LOG"));
-    WRITELINE(file_log, line_log);
-    WRITE(line_log, STRING'("=========================="));
-    WRITELINE(file_log, line_log);
-
+    FILE_OPEN(File_ID,  "..\..\..\..\SOURCES\FIR_data\FIR_data_out.txt", READ_MODE);
+    FILE_OPEN(File_LOG, "FIR_sim_LOG.txt", WRITE_MODE);
     WAIT UNTIL falling_edge(aclk);
-
-    WHILE NOT ENDFILE(file_out) LOOP
-
-      WAIT UNTIL rising_edge(aclk) AND m_axis_data_tvalid = '1';
-
-      READLINE(file_out, line_out);
-      READ(line_out, v_expected);
-
-      v_actual := TO_INTEGER(SIGNED(m_axis_data_tdata(8 DOWNTO 0)));
-
-      IF v_expected /= v_actual THEN
-        err_count := err_count + 1;
-
-        WRITE(line_log, STRING'("ERROR at ") & TIME'image(NOW));
-        WRITE(line_log, STRING'(" | Expected: "));
-        WRITE(line_log, v_expected);
-        WRITE(line_log, STRING'(" | Actual: "));
-        WRITE(line_log, v_actual);
-
-        -- (WRITELINE clears line_log!)
-        REPORT line_log.ALL SEVERITY NOTE;
-        WRITELINE(file_log, line_log);
-
+    WHILE NOT sig_SIM_finished LOOP
+      IF m_axis_data_tvalid = '1' THEN
+        READLINE(File_ID, line_out);
+        READ(line_out, v_expected);
+        v_actual := TO_INTEGER(SIGNED(m_axis_data_tdata(8 DOWNTO 0)));
+        IF v_expected /= v_actual THEN
+          err_count := err_count + 1;
+          WRITE(text_line, STRING'("Output error at " & TIME'image(NOW)));
+          WRITE(text_line, STRING'(". Expected data: "));
+          WRITE(text_line, v_expected);
+          WRITE(text_line, STRING'(" Actual data: "));
+          WRITE(text_line, v_actual);
+          REPORT text_line.ALL SEVERITY NOTE;
+          WRITELINE(File_LOG, text_line);
+        END IF;
       END IF;
-
+      WAIT FOR C_aclk_period;
     END LOOP;
-
-    WAIT UNTIL sig_SIM_finished;
-    WRITE(line_log, STRING'("=========================="));
-    WRITELINE(file_log, line_log);
-    WRITE(line_log, STRING'("Total errors: "));
-    WRITE(line_log, err_count);
-    WRITELINE(file_log, line_log);
-
+    WRITE(text_line, STRING'("=========================="));
+    WRITELINE(File_LOG, text_line);
+    WRITE(text_line, STRING'("Total errors: "));
+    WRITE(text_line, err_count);
+    WRITELINE(File_LOG, text_line);
     IF err_count = 0 THEN
-      WRITE(line_log, STRING'("RESULT: PASS"));
-      WRITELINE(file_log, line_log);
+      WRITE(text_line, STRING'("RESULT: PASS"));
+      WRITELINE(File_LOG, text_line);
       REPORT "SIMULATION PASSED" SEVERITY NOTE;
     ELSE
-      WRITE(line_log, STRING'("RESULT: FAIL"));
-      WRITELINE(file_log, line_log);
-      REPORT "SIMULATION FAILED - Total errors: " & 
-             INTEGER'image(err_count) SEVERITY ERROR;
+      WRITE(text_line, STRING'("RESULT: FAIL"));
+      WRITELINE(File_LOG, text_line);
+      REPORT "SIMULATION FAILED - errors: " & INTEGER'image(err_count) SEVERITY ERROR;
     END IF;
-
-    FILE_CLOSE(file_out);
-    FILE_CLOSE(file_log);
+    FILE_CLOSE(File_ID);
+    FILE_CLOSE(File_LOG);
     WAIT;
-  END PROCESS P_output;
-
+  END PROCESS write_txt_v3;
 ----------------------------------------------------------------------------------
 end tb;
 ----------------------------------------------------------------------------------
