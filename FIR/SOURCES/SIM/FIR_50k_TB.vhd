@@ -48,7 +48,7 @@ begin
   -----------------------------------------------------------------------
   FIR_50k_wrapper_i : FIR_50k_wrapper
   GENERIC MAP(
-    SIM_MODEL           => TRUE
+    SIM_MODEL           => FALSE
   )
   PORT MAP(
     aclk                => aclk,
@@ -74,8 +74,10 @@ begin
       READLINE(File_ID, line_in);
       READ(line_in, v_number);
       s_axis_data_tdata  <= STD_LOGIC_VECTOR(RESIZE(TO_SIGNED(v_number, 9), 16));
-      s_axis_data_tvalid <= '1'; WAIT FOR C_aclk_period * 1;
-      s_axis_data_tvalid <= '0'; WAIT FOR C_aclk_period * 3;
+      s_axis_data_tvalid <= '1';
+      WAIT UNTIL rising_edge(aclk) AND s_axis_data_tready = '1';
+      s_axis_data_tvalid <= '0';
+      WAIT FOR C_aclk_period * 1;
     END LOOP;
     FILE_CLOSE(File_ID);
     sig_SIM_finished <= TRUE;
@@ -98,7 +100,7 @@ begin
     VARIABLE err_count  : INTEGER := 0;
   BEGIN
     FILE_OPEN(File_ID,  "..\..\..\..\SOURCES\FIR_data\FIR_data_out.txt", READ_MODE);
-    FILE_OPEN(File_LOG, "FIR_sim_LOG.txt", WRITE_MODE);
+    FILE_OPEN(File_LOG, "..\..\..\..\SOURCES\FIR_data\FIR_sim_LOG.txt", WRITE_MODE);
     WAIT UNTIL falling_edge(aclk);
     WHILE NOT sig_SIM_finished LOOP
       IF m_axis_data_tvalid = '1' THEN
